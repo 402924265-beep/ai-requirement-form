@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>AI 需求提报</title>
+  <link rel="stylesheet" href="./style.css">
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <h1 id="site-title">AI 需求提报</h1>
+      <div class="header-right">
+        <nav class="language-switch" aria-label="Language">
+          <button type="button" data-lang="zh" lang="zh">中文</button>
+          <span aria-hidden="true">|</span>
+          <button type="button" data-lang="tr" lang="tr">Türkçe</button>
+          <span aria-hidden="true">|</span>
+          <button type="button" data-lang="en" lang="en">English</button>
+        </nav>
+        <img class="brand-strip" src="./assets/haier-europe-brands.png" alt="Haier Europe, Candy, Hoover, Haier">
+      </div>
+    </div>
+  </header>
+  <main class="page-shell">
+    <nav class="progress" id="progress" aria-label="Progress"></nav>
+    <div id="message" class="message" role="alert" hidden></div>
+    <form id="request-form" novalidate>
+      <div id="screen"></div>
+    </form>
+  </main>
+  <footer class="status-bar">
+    <span id="save-status" class="save-status"></span>
+    <img src="./assets/li-xiang-signature.png" alt="A work by Li Xiang" class="signature">
+  </footer>
+  <noscript>This page requires JavaScript. / Bu sayfa JavaScript gerektirir. / 此页面需要 JavaScript。</noscript>
+</body>
+</html>
