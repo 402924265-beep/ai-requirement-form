@@ -1,10 +1,9 @@
 const words = {
   title: ["AI 需求提报", "Yapay Zekâ Talep Formu", "AI Request Form"],
   stages: [
-    ["提报人和负责人", "Başvuran ve sorumlular", "Requester and owners"],
-    ["现有业务流程", "Mevcut iş süreci", "Current process"],
-    ["改进目标与 AI 功能", "İyileştirme ve YZ işlevleri", "Goals and AI functions"],
-    ["核对与导出", "Kontrol ve dışa aktarma", "Review and export"]
+    ["信息与流程", "Bilgiler ve süreç", "Details and flow"],
+    ["目标与 AI 功能", "Hedefler ve YZ", "Goals and AI"],
+    ["核对与导出", "Kontrol ve indir", "Review and export"]
   ],
   applicant: ["申请人信息", "Başvuran bilgileri", "Requester details"],
   applicantName: ["申请人姓名", "Başvuranın adı", "Requester name"],
@@ -19,13 +18,13 @@ const words = {
   remove: ["删除", "Sil", "Remove"],
   addBusiness: ["添加业务经理", "İş birimi yöneticisi ekle", "Add business manager"],
   addProduct: ["添加产品经理", "Ürün yöneticisi ekle", "Add product manager"],
-  peopleHint: ["以上两类负责人均可添加多人。", "Her iki sorumlu gruba da birden fazla kişi eklenebilir.", "You can add multiple people to either owner group."],
   businessIntro: ["业务简介", "İşin kısa tanımı", "Business overview"],
   businessIntroHint: ["简要说明你负责的业务及目的", "Sorumlu olduğunuz işi ve amacını kısaca açıklayın", "Briefly describe the work and its purpose"],
   flowFiles: ["现有流程文件（可选）", "Mevcut süreç dosyası (isteğe bağlı)", "Existing process file (optional)"],
   referenceFiles: ["参考表格（可选）", "Referans tabloları (isteğe bağlı)", "Reference tables (optional)"],
   flowFormats: ["Word / PDF / 图片，单个不超过 12 MB", "Word / PDF / görsel; dosya başına en çok 12 MB", "Word / PDF / image; 12 MB per file"],
   tableFormats: ["Excel / CSV，单个不超过 12 MB", "Excel / CSV; dosya başına en çok 12 MB", "Excel / CSV; 12 MB per file"],
+  chooseFile: ["选择文件", "Dosya seç", "Choose files"],
   noFiles: ["未选择文件", "Dosya seçilmedi", "No file selected"],
   steps: ["现有流程步骤", "Mevcut süreç adımları", "Current process steps"],
   step: ["步骤", "Adım", "Step"],
@@ -162,19 +161,20 @@ function personTable(kind, title, addKey) {
 }
 function firstScreen() {
   const a = state.applicant;
-  return `<section class="panel"><h2>${tr("applicant")} ${req}</h2><div class="grid-3">
+  return `<div class="overview-screen"><section class="panel"><h2>${tr("applicant")} ${req}</h2><div class="grid-3">
     ${field(tr("applicantName"), a.name, `data-kind="applicant" data-field="name" data-required placeholder="${tr("nameHint")}"`)}
     ${field(tr("department"), a.department, `data-kind="applicant" data-field="department" data-required placeholder="${tr("departmentHint")}"`)}
     ${field(tr("contact"), a.contact, `data-kind="applicant" data-field="contact" data-required placeholder="${tr("contactHint")}"`)}
   </div></section>
-  ${personTable("businessManagers", tr("businessManagers"), "addBusiness")}
-  ${personTable("productManagers", tr("productManagers"), "addProduct")}
-  <p class="hint">${tr("peopleHint")}</p>
-  ${actionBar(nextText(trans(words.stages[1])), false)}`;
+  <div class="owners-grid">
+    ${personTable("businessManagers", tr("businessManagers"), "addBusiness")}
+    ${personTable("productManagers", tr("productManagers"), "addProduct")}
+  </div>
+  ${processScreen()}</div>`;
 }
 function uploadBox(title, formats, kind, accept) {
   return `<div class="upload-box"><h3>${title}</h3><small>${formats}</small>
-    <input type="file" data-file-kind="${kind}" accept="${accept}" multiple aria-label="${title}">
+    <label class="file-trigger">${tr("chooseFile")}<input type="file" data-file-kind="${kind}" accept="${accept}" multiple aria-label="${title}"></label>
     <div class="files">${files[kind].length ? files[kind].map(f => esc(f.name)).join("<br>") : tr("noFiles")}</div>
   </div>`;
 }
@@ -199,7 +199,7 @@ function processScreen() {
   <section class="panel"><h2>${tr("steps")} ${req}</h2>
     ${state.steps.map(processCard).join("")}
     <button class="button" type="button" data-action="add-step">${tr("addStep")}</button>
-  </section>${actionBar(nextText(trans(words.stages[2])))}`;
+  </section>${actionBar(nextText(trans(words.stages[1])), false)}`;
 }
 function goalCard(s, i) {
   const goal = state.goals[s.id] || { selected: false, problem: "", desired: "" };
@@ -221,7 +221,7 @@ function goalsScreen() {
   </section><section class="panel"><h2>${tr("functions")}</h2><p class="lead">${tr("functionsHint")}</p>
     ${functionGroups()}
     <div class="field" style="margin-top:18px"><label>${tr("otherFunction")}<input type="text" data-kind="otherFunction" value="${val(state.otherFunction)}" placeholder="${tr("otherFunctionHint")}"></label></div>
-  </section>${actionBar(nextText(trans(words.stages[3])))}`;
+  </section>${actionBar(nextText(trans(words.stages[2])))}`;
 }
 function detailList(items) { return `<ul>${items.map(v => `<li>${esc(v)}</li>`).join("")}</ul>`; }
 function reviewScreen() {
@@ -252,7 +252,7 @@ function render() {
   document.getElementById("site-title").textContent = tr("title");
   document.querySelectorAll(".language-switch button").forEach(button => button.setAttribute("aria-current", String(button.dataset.lang === language)));
   renderProgress();
-  document.getElementById("screen").innerHTML = [firstScreen, processScreen, goalsScreen, reviewScreen][current]();
+  document.getElementById("screen").innerHTML = [firstScreen, goalsScreen, reviewScreen][current]();
   document.getElementById("save-status").textContent = tr("saved");
 }
 function validate(index) {
@@ -261,11 +261,9 @@ function validate(index) {
     for (const kind of ["businessManagers", "productManagers"]) {
       if (!state[kind].length || state[kind].some(p => Object.values(p).some(x => !String(x).trim()))) return tr("required");
     }
-  }
-  if (index === 1) {
     if (!state.intro.trim() || !state.steps.length || state.steps.some(s => ["title", "detail", "owner", "cadence", "output"].some(k => !String(s[k]).trim()))) return tr("required");
   }
-  if (index === 2) {
+  if (index === 1) {
     const selected = state.steps.filter(s => state.goals[s.id]?.selected);
     if (!selected.length || selected.some(s => !state.goals[s.id].problem.trim() || !state.goals[s.id].desired.trim())) return tr("needGoal");
   }
@@ -330,7 +328,7 @@ document.addEventListener("click", async e => {
   else if (action === "next") {
     const error = validate(current);
     if (error) { showMessage(error); return; }
-    current = Math.min(3, current + 1);
+    current = Math.min(2, current + 1);
   }
   else if (action === "nav") {
     const target = Number(button.dataset.index);
@@ -355,7 +353,7 @@ async function fileData(file, kind) {
   return { kind, name: file.name, type: file.type, size: file.size, dataBase64: String(dataUrl).split(",")[1] };
 }
 async function exportPackage(button) {
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 2; i++) {
     const error = validate(i);
     if (error) { current = i; render(); showMessage(error); return; }
   }
