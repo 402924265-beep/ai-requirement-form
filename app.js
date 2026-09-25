@@ -54,14 +54,25 @@ const words = {
   review: ["核对提报内容", "Talebi kontrol edin", "Review your request"],
   reviewHint: ["请核对各项信息；可返回修改。", "Bilgileri kontrol edin; gerekirse geri dönüp düzenleyin.", "Check the details and go back to edit if needed."],
   attachments: ["附件", "Ekler", "Attachments"],
-  notSent: ["此网页尚未连接接收系统。导出会把表单和所选附件保存到本机，不会自动发送。", "Bu sayfa henüz bir alıcı sisteme bağlı değil. Dışa aktarma, formu ve seçilen ekleri cihazınıza kaydeder; otomatik gönderim yapmaz.", "This page is not connected to a receiving system. Export saves the form and selected attachments to your device; it does not send them."],
-  download: ["下载完整提报包", "Tam talep paketini indir", "Download request package"],
+  notSent: ["此网页尚未连接接收系统。Excel 含表单信息和附件清单；提报包另含附件文件。两种导出都只保存到本机。", "Bu sayfa henüz bir alıcı sisteme bağlı değil. Excel form bilgilerini ve ek listesini içerir; talep paketi ek dosyalarını da içerir. Her iki dışa aktarma da yalnızca cihazınıza kaydedilir.", "This page is not connected to a receiving system. Excel includes form details and an attachment list; the request package also includes the files. Both exports save only to your device."],
+  download: ["下载提报包（含附件）", "Talep paketini indir (eklerle)", "Download package with files"],
+  excelDownload: ["导出 Excel", "Excel'e aktar", "Export Excel"],
+  excelBusy: ["正在生成 Excel…", "Excel hazırlanıyor…", "Preparing Excel…"],
+  excelHint: ["可随时导出当前已填内容；附件文件不嵌入 Excel。", "Doldurulan bilgileri istediğiniz zaman dışa aktarın; ek dosyaları Excel'e gömülmez.", "Export the current draft anytime; attachment files are not embedded in Excel."],
+  exportedAt: ["导出时间", "Dışa aktarma zamanı", "Exported at"],
+  fileType: ["附件类别", "Ek türü", "Attachment type"],
+  fileName: ["文件名", "Dosya adı", "File name"],
+  fileSize: ["大小", "Boyut", "Size"],
+  excelAttachmentNote: ["附件文件不嵌入 Excel；如需文件内容，请下载提报包。", "Ek dosyaları Excel'e gömülmez; dosyaların içeriği için talep paketini indirin.", "Attachment files are not embedded in Excel; download the request package for their contents."],
+  category: ["功能类别", "İşlev grubu", "Function group"],
+  functionName: ["功能", "İşlev", "Function"],
+  goalSelected: ["已选择改进", "İyileştirme seçildi", "Selected for improvement"],
+  yes: ["是", "Evet", "Yes"],
+  no: ["否", "Hayır", "No"],
   saved: ["草稿已保存在当前浏览器", "Taslak bu tarayıcıda kaydedildi", "Draft saved in this browser"],
   fileReminder: ["刷新页面后须重新选择附件。", "Sayfa yenilenirse ekleri yeniden seçmeniz gerekir.", "Reselect attachments after refreshing the page."],
   next: ["继续", "Devam", "Continue"],
   back: ["上一步", "Önceki adım", "Previous step"],
-  required: ["请补全本页必填内容。", "Bu sayfadaki zorunlu alanları doldurun.", "Complete the required fields on this page."],
-  needGoal: ["请至少选择一个要改进的步骤，并填写问题和期望结果。", "En az bir adım seçip sorunu ve istenen sonucu yazın.", "Select at least one step and describe the problem and desired result."],
   tooLarge: ["附件超出限制：单个不超过 12 MB，全部不超过 24 MB。", "Ek sınırı aşıldı: dosya başına 12 MB, toplam 24 MB.", "Attachment limit exceeded: 12 MB per file, 24 MB total."],
   exportError: ["导出失败，请重试。", "Dışa aktarma başarısız; yeniden deneyin.", "Export failed; please retry."],
   exportBusy: ["正在整理提报包…", "Talep paketi hazırlanıyor…", "Preparing request package…"],
@@ -250,24 +261,12 @@ function render() {
   document.documentElement.lang = language;
   document.title = tr("title");
   document.getElementById("site-title").textContent = tr("title");
+  document.getElementById("excel-export").textContent = tr("excelDownload");
+  document.getElementById("excel-export").title = tr("excelHint");
   document.querySelectorAll(".language-switch button").forEach(button => button.setAttribute("aria-current", String(button.dataset.lang === language)));
   renderProgress();
   document.getElementById("screen").innerHTML = [firstScreen, goalsScreen, reviewScreen][current]();
   document.getElementById("save-status").textContent = tr("saved");
-}
-function validate(index) {
-  if (index === 0) {
-    if (Object.values(state.applicant).some(x => !String(x).trim())) return tr("required");
-    for (const kind of ["businessManagers", "productManagers"]) {
-      if (!state[kind].length || state[kind].some(p => Object.values(p).some(x => !String(x).trim()))) return tr("required");
-    }
-    if (!state.intro.trim() || !state.steps.length || state.steps.some(s => ["title", "detail", "owner", "cadence", "output"].some(k => !String(s[k]).trim()))) return tr("required");
-  }
-  if (index === 1) {
-    const selected = state.steps.filter(s => state.goals[s.id]?.selected);
-    if (!selected.length || selected.some(s => !state.goals[s.id].problem.trim() || !state.goals[s.id].desired.trim())) return tr("needGoal");
-  }
-  return null;
 }
 function updateValue(el) {
   const { kind, field, index, id } = el.dataset;
@@ -325,24 +324,107 @@ document.addEventListener("click", async e => {
     }
   }
   else if (action === "back") current = Math.max(0, current - 1);
-  else if (action === "next") {
-    const error = validate(current);
-    if (error) { showMessage(error); return; }
-    current = Math.min(2, current + 1);
-  }
-  else if (action === "nav") {
-    const target = Number(button.dataset.index);
-    for (let i = 0; i < target; i++) {
-      const error = validate(i);
-      if (error) { current = i; showMessage(error); render(); return; }
-    }
-    current = target;
-  }
+  else if (action === "next") current = Math.min(2, current + 1);
+  else if (action === "nav") current = Number(button.dataset.index);
+  else if (action === "excel") { await exportExcel(button); return; }
   else if (action === "export") { await exportPackage(button); return; }
   else return;
   persist(); showMessage(""); render();
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+function excelLines(value) {
+  const lines = [];
+  for (const paragraph of String(value ?? "").split(/\r?\n/)) {
+    let line = "", width = 0;
+    for (const character of paragraph) {
+      const size = character.codePointAt(0) > 0x2e80 ? 2 : 1;
+      if (line && width + size > 68) { lines.push(line); line = ""; width = 0; }
+      line += character;
+      width += size;
+    }
+    lines.push(line);
+  }
+  return lines;
+}
+function excelText(rows, label, value) {
+  excelLines(value).forEach((line, i) => rows.push([i ? "" : label, line]));
+}
+function excelSheet(XLSX, workbook, names, rows, widths) {
+  const sheet = XLSX.utils.aoa_to_sheet(rows);
+  sheet["!cols"] = widths.map(wch => ({ wch }));
+  sheet["!rows"] = rows.map(row => ({ hpt: row.length ? 23 : 10 }));
+  XLSX.utils.book_append_sheet(workbook, sheet, trans(names));
+}
+async function exportExcel(button) {
+  button.disabled = true;
+  button.textContent = tr("excelBusy");
+  try {
+    const XLSX = await import("./vendor/xlsx.mjs");
+    const workbook = XLSX.utils.book_new();
+    const people = [[tr("title")], [tr("exportedAt"), new Date().toLocaleString()], [],
+      [tr("applicant")], [tr("applicantName"), state.applicant.name], [tr("department"), state.applicant.department], [tr("contact"), state.applicant.contact]];
+    for (const [kind, title] of [["businessManagers", tr("businessManagers")], ["productManagers", tr("productManagers")]]) {
+      people.push([], [title], [tr("name"), tr("department"), tr("contact")]);
+      state[kind].forEach(person => people.push([person.name, person.department, person.contact]));
+    }
+    people.push([], [tr("businessIntro")]);
+    excelText(people, "", state.intro);
+    excelSheet(XLSX, workbook, ["人员与业务", "Kişiler ve iş", "People and business"], people, [30, 80, 40]);
+
+    const process = [[tr("steps")]];
+    state.steps.forEach((step, i) => {
+      if (i) process.push([]);
+      process.push([`${tr("step")} ${i + 1}`, step.title]);
+      excelText(process, tr("detail"), step.detail);
+      process.push([tr("owner"), step.owner], [tr("cadence"), step.cadence], [tr("input"), step.input], [tr("output"), step.output]);
+    });
+    excelSheet(XLSX, workbook, ["现有流程", "Mevcut süreç", "Current process"], process, [30, 96]);
+
+    const goals = [[tr("goals")]];
+    state.steps.forEach((step, i) => {
+      const goal = state.goals[step.id];
+      if (!goal || (!goal.selected && !goal.problem?.trim() && !goal.desired?.trim())) return;
+      goals.push([], [`${tr("step")} ${i + 1}`, step.title], [tr("goalSelected"), goal.selected ? tr("yes") : tr("no")]);
+      excelText(goals, tr("problem"), goal.problem);
+      excelText(goals, tr("desired"), goal.desired);
+    });
+    if (goals.length === 1) goals.push([tr("none")]);
+    goals.push([], [tr("functions")], [tr("category"), tr("functionName")]);
+    for (const group of groups) for (const id of group.ids) {
+      if (state.selectedFunctions.includes(id)) goals.push([trans(group.title), trans(capabilities[id])]);
+    }
+    if (state.otherFunction.trim()) excelText(goals, tr("otherFunction"), state.otherFunction);
+    if (!state.selectedFunctions.length && !state.otherFunction.trim()) goals.push([tr("none")]);
+    excelSheet(XLSX, workbook, ["改进与 AI", "İyileştirme ve YZ", "Goals and AI"], goals, [30, 96]);
+
+    const attachments = [[tr("attachments")], [tr("fileType"), tr("fileName"), tr("fileSize")]];
+    for (const [kind, title] of [["flow", tr("flowFiles")], ["reference", tr("referenceFiles")]]) {
+      files[kind].forEach(file => attachments.push([title, file.name, file.size < 1048576 ? `${(file.size / 1024).toFixed(1)} KB` : `${(file.size / 1048576).toFixed(2)} MB`]));
+    }
+    if (attachments.length === 2) attachments.push([tr("none")]);
+    attachments.push([]);
+    excelText(attachments, "", tr("excelAttachmentNote"));
+    excelSheet(XLSX, workbook, ["附件清单", "Ek listesi", "Attachments"], attachments, [32, 82, 18]);
+
+    const data = XLSX.write(workbook, { bookType: "xlsx", type: "array", compression: true });
+    downloadBlob(new Blob([data], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), `ai-requirement-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  } catch {
+    showMessage(tr("exportError"));
+  } finally {
+    button.disabled = false;
+    button.textContent = tr("excelDownload");
+  }
+}
 async function fileData(file, kind) {
   const dataUrl = await new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -353,24 +435,12 @@ async function fileData(file, kind) {
   return { kind, name: file.name, type: file.type, size: file.size, dataBase64: String(dataUrl).split(",")[1] };
 }
 async function exportPackage(button) {
-  for (let i = 0; i < 2; i++) {
-    const error = validate(i);
-    if (error) { current = i; render(); showMessage(error); return; }
-  }
   button.disabled = true;
   button.textContent = tr("exportBusy");
   try {
     const attachments = await Promise.all([...files.flow.map(f => fileData(f, "flow")), ...files.reference.map(f => fileData(f, "reference"))]);
     const data = { schemaVersion: 1, createdAt: new Date().toISOString(), contentLanguage: language, request: state, attachments };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `ai-requirement-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }), `ai-requirement-${new Date().toISOString().slice(0, 10)}.json`);
   } catch {
     showMessage(tr("exportError"));
   } finally {

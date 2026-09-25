@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
   <title>AI 需求提报</title>
-  <link rel="stylesheet" href="./style.css?v=20260925-3step">
-  <script defer src="./app.js?v=20260925-3step"></script>
+  <link rel="stylesheet" href="./style.css?v=20260925-excel">
+  <script defer src="./app.js?v=20260925-excel"></script>
 </head>
 <body>
   <header class="site-header">
@@ -25,7 +25,10 @@
     </div>
   </header>
   <main class="page-shell">
-    <nav class="progress" id="progress" aria-label="Progress"></nav>
+    <div class="progress-row">
+      <nav class="progress" id="progress" aria-label="Progress"></nav>
+      <button type="button" class="button excel-export" id="excel-export" data-action="excel"></button>
+    </div>
     <div id="message" class="message" role="alert" hidden></div>
     <form id="request-form" novalidate>
       <div id="screen"></div>

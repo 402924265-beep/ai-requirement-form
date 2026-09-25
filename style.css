@@ -17,7 +17,9 @@ h1 { font-size: clamp(30px, 2.8vw, 40px); letter-spacing: .025em; line-height: 1
 .language-switch button { color: #233c6b; background: none; border: 0; border-bottom: 2px solid transparent; padding: 7px 2px; font-size: 14px; }
 .language-switch button[aria-current="true"] { color: #0a55d4; border-color: #0a55d4; font-weight: 700; }
 .brand-strip { display: block; width: min(31vw, 350px); height: auto; }
-.progress { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 4px 0 16px; }
+.progress-row { display: flex; align-items: center; gap: 14px; margin: 4px 0 16px; }
+.progress { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; flex: 1; min-width: 0; }
+.button.excel-export { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 .progress button { display: flex; align-items: center; gap: 13px; border: 0; background: transparent; color: #687897; text-align: left; padding: 4px 2px; min-width: 0; }
 .progress button:not(:last-child)::after { content: ""; height: 1px; background: #cbd8ef; flex: 1; margin-left: 12px; }
 .progress button.current { color: #0954d4; font-weight: 700; }
@@ -126,6 +128,8 @@ textarea.long { min-height: 145px; }
   .brand-strip { width: min(47vw, 230px); }
   .language-switch { gap: 4px; }
   .language-switch button { font-size: 12px; }
+  .progress-row { flex-direction: column-reverse; align-items: stretch; gap: 7px; }
+  .excel-export { align-self: flex-end; }
   .progress { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; margin-top: 2px; }
   .progress button { gap: 5px; align-items: flex-start; }
   .progress button::after { display: none; }
